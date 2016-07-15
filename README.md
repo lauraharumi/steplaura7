@@ -1,2 +1,4 @@
 # steplaura7
-Othello AI  
+Othello AI  :) 
+
+
