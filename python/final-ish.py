@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import copy
 import json
-import logging
 import random
-import webapp2
 
-# Reads json description of the board and provides simple interface.
-weight = [[5,0,4,4,4,4,0,5],
+body = """
+{"board":{"Pieces":[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,0,0,0],[0,0,0,1,2,0,0,0],[0,0,0,0,1,1,1,0],[0,0,0,0,2,1,2,0],[0,0,0,2,1,0,0,0]],"Next":2},"gamekey":"ag5zfnN0ZXAtb3RoZWxsb3IRCxIER2FtZRiAgIDAqLGWCww","history":[{"Where":[5,6],"As":1},{"Where":[6,6],"As":2},{"Where":[3,4],"As":1},{"Where":[5,7],"As":2},{"Where":[6,7],"As":1},{"Where":[7,7],"As":2},{"Where":[5,8],"As":1},{"Where":[4,8],"As":2},{"Where":[7,6],"As":1}],"valid_moves":[{"Where":[3,3],"As":2},{"Where":[5,3],"As":2},{"Where":[3,5],"As":2},{"Where":[7,5],"As":2},{"Where":[6,8],"As":2}]}
+"""
+body = """
+ {"board":{"Pieces":[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,2,1,0,0,0],[0,0,0,1,2,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],"Next":1},"gamekey":"ag5zfnN0ZXAtb3RoZWxsb3IRCxIER2FtZRiAgICA-q6cCww","history":null,"valid_moves":[{"Where":[4,3],"As":1},{"Where":[3,4],"As":1},{"Where":[6,5],"As":1},{"Where":[5,6],"As":1}]}
+"""
+weight = [
+[5,0,4,4,4,4,0,5],
 [0,0,1,1,1,1,0,0],
 [4,1,3,3,3,3,1,4],
 [4,1,3,2,2,3,1,4],
@@ -17,27 +20,29 @@ weight = [[5,0,4,4,4,4,0,5],
 [0,0,1,1,1,1,0,0],
 [5,0,4,4,4,4,0,5]]
 
-depth =3
 class Game:
-	# Takes json or a board directly.
 	def __init__(self, body=None, board=None):
                 if body:
 		        game = json.loads(body)
                         self._board = game["board"]
                 else:
                         self._board = board
+	def DrawBoard(self): #added for understanding
+		for line in self._board["Pieces"]:
+			print line
+		print "\n"
 	def Pos(self, x, y):
 		return Pos(self._board["Pieces"], x, y)
-
 	def Next(self):
 		return self._board["Next"]
 	def evaluate(self, player): 
 		weight_sum = 0 
-		for x, line in enumerate(self._board['Pieces']): 
+		for x, line in enumerate(g._board['Pieces']): 
 			for y, sq in enumerate(line):
 				if sq == player:
 					weight_sum += weight[x][y]
 		return weight_sum 
+		
 	def ValidMoves(self):
                 moves = []
                 for y in xrange(1,9):
@@ -46,9 +51,9 @@ class Game:
                                         "As": self.Next()}
                                 if self.NextBoardPosition(move):
                                         moves.append(move)
-                return moves
- 
- 	def __UpdateBoardDirection(self, new_board, x, y, delta_x, delta_y):
+                return moves 
+
+	def __UpdateBoardDirection(self, new_board, x, y, delta_x, delta_y):
 		player = self.Next()
 		opponent = 3 - player
 		look_x = x + delta_x
@@ -66,6 +71,7 @@ class Game:
 				SetPos(new_board, flip_x, flip_y, player)
                         return True
                 return False
+	
 	def NextBoardPosition(self, move):
 		x = move["Where"][0]
 		y = move["Where"][1]
@@ -85,8 +91,6 @@ class Game:
 		        | self.__UpdateBoardDirection(pieces, x, y, -1, -1)):
                         # Nothing was captured. Move is invalid.
                         return None
-                
-                # Something was captured. Move is valid.
                 new_board["Next"] = 3 - self.Next()
 		return Game(board=new_board)
 
@@ -95,42 +99,33 @@ def Pos(board, x, y):
 		return board[y-1][x-1]
 	return None
 
-# Set piece on the board at (x,y) coordinate
 def SetPos(board, x, y, piece):
 	if x < 1 or 8 < x or y < 1 or 8 < y or piece not in [0,1,2]:
 		return False
 	board[y-1][x-1] = piece
 
-# Debug function to pretty print the array representation of board.
-def PrettyPrint(board, nl="<br>"):
-	s = ""
-	for row in board:
-		for piece in row:
-			s += str(piece)
-		s += nl
-	return s
-
-def PrettyMove(move):
+def PrettyMove(move): 
 	m = move["Where"]
 	return '%s%d' % (chr(ord('A') + m[0] - 1), m[1])
 
-def ABnegaMax(game, depth, alpha, beta):
-	if depth == 0: 
-		return game.evaluate(game.Next()), None
-	bestMove = None
-	bestScore = -100000
-	for move in game.ValidMoves(): 
-		gameCopy = game.NextBoardPosition(move)
-		score, amove = ABnegaMax(gameCopy, depth-1, -beta, -max(alpha, bestScore))
-		score = -score 
-		if score > bestScore: 
-			bestScore = score
-			bestMove = move
-			if (bestScore >= beta):
-				return bestScore, bestMove
-	return bestScore, bestMove
-
+# def ABnegaMax(game, depth, alpha, beta):
+# 	if depth == 0: 
+# 		return game.evaluate(g.Next()), None
+# 	bestMove = None
+# 	bestScore = -100000
+# 	for move in game.ValidMoves(): 
+# 		gameCopy = game.NextBoardPosition(move)
+# 		score, amove = ABnegaMax(gameCopy, depth-1, -beta, -max(alpha, bestScore))
+# 		score = -score 
+# 		if score > bestScore: 
+# 			bestScore = score
+# 			bestMove = move
+# 			if (bestScore >= beta):
+# 				return bestScore, bestMove
+# 	return bestScore, bestMove
+	
 def minimax(game, depth, player): 
+
 	if depth == 0: 
 		return game.evaluate(player)
 	bestMove = None
@@ -152,31 +147,12 @@ def minimax(game, depth, player):
 				bestMove = move 
 	return bestScore, bestMove
 
-class MainHandler(webapp2.RequestHandler):
-    def get(self):
-        if not self.request.get('json'):
-          self.response.write("""
-							<body><form method=get>
-							Paste JSON here:<p/><textarea name=json cols=80 rows=24></textarea>
-							<p/><input type=submit>
-							</form>
-							</body>
-							""")
-          return
-        else:
-	        g = Game(self.request.get('json'))
-			player = g.Next() # set who you are 
-	        score, move = minimax(g, depth, player)
-	        # score, move = ABnegaMax(g, depth, -10000, 10000)
-	        self.response.write(PrettyMove(move))
 
-    def post(self):
-    	g = Game(self.request.body)
-       	player = g.Next() # set who you are 
-	    score, move = minimax(g, depth, player)
-        # score, move = ABnegaMax(g, depth, -10000, 10000)
-        self.response.write(PrettyMove(move))
+depth =3
+g = Game(body)
+player = g.Next() # set who you are 
+minimax(g, depth, player)
 
-app = webapp2.WSGIApplication([
-    ('/', MainHandler)
-], debug=True)
+# score, move =  ABnegaMax(g, depth, -10000, 10000)
+# print score, PrettyMove(move)
+
